@@ -1,0 +1,1891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Corporate Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+    
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#353C51',
+                        background: '#F4F6F8',
+                        selectedBg: '#EAF3FC',
+                        selectedBorder: '#2196F3',
+                    },
+                    animation: {
+                        'fade-in-down': 'fadeInDown 0.3s ease-out',
+                    },
+                    keyframes: {
+                        fadeInDown: {
+                            '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .no-select { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        
+        /* Shimmer Animation */
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        .animate-shimmer {
+            animation: shimmer 2s infinite linear;
+            background: linear-gradient(to right, #f6f7f8 4%, #edeef1 25%, #f6f7f8 36%);
+            background-size: 1000px 100%;
+        }
+
+        /* Fix date picker icon spacing */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.6;
+            transition: 0.2s;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
+
+        /* Segmented Control Animation */
+        .tab-active {
+            background-color: white;
+            color: #1f2937;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .tab-inactive {
+            color: #6b7280;
+        }
+
+        /* Hide scrollbar for KPI tabs */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-gray-800 font-sans antialiased h-screen overflow-hidden flex justify-center w-full">
+
+    <!-- Mobile App Container -->
+    <div class="relative w-full max-w-md h-full bg-background flex flex-col shadow-2xl overflow-hidden">
+        
+        <!-- Dynamic App Bar (Hidden on Login) -->
+        <header id="app-header" class="bg-primary text-white flex items-center justify-between p-4 flex-shrink-0 z-30 shadow-md transition-all hidden">
+            <div class="flex items-center">
+                <button id="header-left-btn" onclick="toggleDrawer()" class="p-1 rounded-full hover:bg-white/10 transition-colors mr-2">
+                    <span class="material-symbols-outlined" id="header-icon">menu</span>
+                </button>
+                <h1 id="header-title" class="text-lg font-medium hidden">Home Dashboard</h1>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button class="p-1 rounded-full hover:bg-white/10 transition-colors">
+                    <span class="material-symbols-outlined">mark_chat_unread</span>
+                </button>
+                <button class="p-1 rounded-full hover:bg-white/10 transition-colors">
+                    <span class="material-symbols-outlined">search</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Area (View Router) -->
+        <main class="flex-1 overflow-hidden relative">
+
+            <!-- VIEW: LOGIN SCREEN -->
+            <div id="view-login" class="view-section h-full flex flex-col items-center justify-center bg-white p-6 block">
+                <div class="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center text-4xl text-white font-medium shadow-md mb-4 border-4 border-purple-100">T</div>
+                <h2 class="text-2xl font-black text-gray-800 mb-1 tracking-tight">TestCorp</h2>
+                <p class="text-sm text-gray-500 mb-8 font-medium">Sign in to your account</p>
+
+                <div class="w-full space-y-4 max-w-[300px]">
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 pl-1">Username</label>
+                        <input type="text" id="login-username" placeholder="corpadmin or manager" class="w-full bg-gray-50 rounded-xl px-4 py-3 outline-none border border-gray-200 focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 pl-1">Password</label>
+                        <input type="password" id="login-password" placeholder="12345" class="w-full bg-gray-50 rounded-xl px-4 py-3 outline-none border border-gray-200 focus:bg-white focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-sm font-medium">
+                    </div>
+                    <div id="login-error" class="text-red-500 text-xs font-bold hidden bg-red-50 p-2 rounded-lg text-center border border-red-100">Invalid username or password</div>
+                    <button onclick="handleLogin()" class="w-full bg-primary text-white font-bold text-sm px-4 py-3.5 rounded-xl shadow-md hover:bg-[#2A3042] active:scale-[0.98] transition-all mt-4">Log In</button>
+                    
+                    <!-- Credential helper for testing -->
+                    <div class="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                        <p class="text-xs text-blue-800 font-bold mb-2">Test Credentials:</p>
+                        <p class="text-[11px] text-blue-600 mb-1">Admin: <span class="font-bold">corpadmin</span> / 12345</p>
+                        <p class="text-[11px] text-blue-600">Manager: <span class="font-bold">manager</span> / 12345</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- VIEW: Home Dashboard -->
+            <div id="view-home" class="view-section h-full overflow-y-auto pb-6 hidden">
+                <div class="m-4 bg-white rounded-xl shadow-sm p-6 flex flex-col items-center border border-gray-100">
+                    <div class="relative flex items-center justify-center w-24 h-24 mb-2">
+                        <span class="material-symbols-outlined text-[#BCAAA4]" style="font-size: 80px; font-variation-settings: 'FILL' 1;">workspace_premium</span>
+                        <span class="absolute text-xl font-bold text-gray-800 pb-2">3<sup class="text-sm">rd</sup></span>
+                    </div>
+                    <h2 class="text-gray-500 font-medium text-xl mb-4">$0.00</h2>
+                    <div class="bg-gray-200 text-gray-700 px-4 py-2 rounded-full text-sm font-medium">
+                        000013, Winter Pa...
+                    </div>
+                </div>
+                <div id="list-container" class="space-y-2 px-4"></div>
+            </div>
+
+            <!-- VIEW: Schedule Adherence MAIN (Level 1 & 2) -->
+            <div id="view-sa-main" class="view-section h-full flex flex-col hidden bg-gray-100">
+                
+                <!-- Sticky Header & Controls -->
+                <div class="bg-white shadow-sm z-20 pb-2 flex-shrink-0 border-b border-gray-200" id="sa-controls-container">
+                    <div class="flex space-x-2 px-3 py-2 border-b border-gray-100" id="filter-controls-row">
+                        <!-- Region Dropdown -->
+                        <div id="region-select-wrapper" class="flex-1 relative flex items-center bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 transition-colors focus-within:ring-2 focus-within:ring-blue-200">
+                            <span class="material-symbols-outlined text-[16px] mr-1.5 text-primary">domain</span>
+                            <select id="region-select" onchange="applyFilters()" class="appearance-none bg-transparent w-full outline-none text-[13px] text-gray-900 cursor-pointer pr-4 font-bold">
+                                <option value="corporate">Corporate</option>
+                                <option value="north">North Region</option>
+                                <option value="south">South Region</option>
+                                <option value="east">East Region</option>
+                                <option value="west">West Region</option>
+                            </select>
+                            <span class="material-symbols-outlined text-[18px] absolute right-1.5 pointer-events-none text-gray-600">arrow_drop_down</span>
+                        </div>
+                        <!-- Date Picker (Always visible) -->
+                        <div id="date-select-wrapper" class="relative flex items-center bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 transition-colors focus-within:ring-2 focus-within:ring-blue-200 w-[130px]">
+                            <span class="material-symbols-outlined text-[16px] mr-1 text-blue-600">calendar_today</span>
+                            <input type="date" id="date-select" onchange="handleDateChange()" class="appearance-none bg-transparent w-full outline-none text-[13px] text-gray-900 cursor-pointer font-bold" />
+                        </div>
+                    </div>
+
+                    <!-- Level 1/2 Toggle Switch -->
+                    <div class="px-3 mt-2" id="tab-switcher-container">
+                        <div class="bg-gray-100 p-1 rounded-lg flex text-sm font-bold border border-gray-200 shadow-inner">
+                            <button onclick="toggleSATab('dashboard')" id="tab-dashboard" class="flex-1 py-1 rounded-md tab-active transition-all">Dashboard</button>
+                            <button onclick="toggleSATab('summary')" id="tab-summary" class="flex-1 py-1 rounded-md tab-inactive transition-all">Summary</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scrollable Content Area -->
+                <div class="flex-1 overflow-y-auto relative bg-[#F4F6F8]">
+                    
+                    <!-- LEVEL 1: Dashboard Content -->
+                    <div id="sa-dashboard-content" class="p-3 space-y-3 pb-6 block">
+                        <!-- Executive Summary Header -->
+                        <div class="bg-gradient-to-br from-primary to-[#1A1F2E] rounded-xl shadow p-4 text-white relative overflow-hidden">
+                            <!-- decorative background element -->
+                            <div class="absolute -right-10 -top-10 w-28 h-28 bg-white/5 rounded-full blur-2xl"></div>
+                            <div class="absolute -left-10 -bottom-10 w-20 h-20 bg-blue-500/20 rounded-full blur-xl"></div>
+                            
+                            <div class="relative z-10">
+                                <h3 class="text-white/80 text-[10px] uppercase tracking-widest font-bold mb-1">Schedule Adherence</h3>
+                                <div class="flex items-end justify-between">
+                                    <div class="relative group cursor-help w-max">
+                                        <div class="text-3xl font-extrabold tracking-tight flex items-start" id="avg-adherence-display">
+                                            0<span class="text-xl mt-1">%</span>
+                                        </div>
+                                        <!-- Tooltip -->
+                                        <div class="absolute top-full left-0 mt-2 w-[180px] bg-gray-900 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl pointer-events-none text-[10px] font-medium z-50 text-center leading-snug">
+                                           The percentage shown reflects the last posted week.
+                                            <div class="absolute -top-1 left-4 w-0 h-0 border-l-[6px] border-r-[6px] border-b-[6px] border-l-transparent border-r-transparent border-b-gray-900"></div>
+                                        </div>
+                                        <div class="text-emerald-400 text-[10px] font-extrabold mt-1 flex items-center bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/20 uppercase tracking-wide w-max" id="adherence-trend-badge">
+                                            <span class="material-symbols-outlined text-[14px] mr-1">trending_up</span> On Track
+                                        </div>
+                                    </div>
+                                    <div class="text-right border-l border-white/20 pl-4">
+                                        <div class="text-white/80 text-[10px] font-bold uppercase tracking-wider mb-0.5">Deviations</div>
+                                        <div class="text-xl font-extrabold" id="total-deviations-display">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Option to show EOC table for all stores -->
+                        <button onclick="openGlobalEmployeesOnClock('all')" class="w-full bg-white border border-blue-200 text-blue-700 font-bold text-[13px] px-4 py-3 rounded-xl shadow-sm hover:bg-blue-50 active:bg-blue-100 transition-colors flex items-center justify-between">
+                            <div class="flex items-center">
+                                <span class="material-symbols-outlined text-[18px] mr-2 text-blue-600">alarm_on</span>
+                                All Employees On Clock	
+                            </div>
+                            <span class="material-symbols-outlined text-[18px] text-gray-400">chevron_right</span>
+                        </button>
+
+                        <!-- AI Insights Dashboard -->
+                        <div class="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl shadow-sm border border-indigo-100 p-3">
+                            <h3 class="text-indigo-900 font-extrabold text-[11px] mb-1.5 uppercase tracking-wider flex items-center">
+                                <span class="material-symbols-outlined text-indigo-600 mr-1.5 text-[16px]">auto_awesome</span>
+                                AI Insight
+                            </h3>
+                            <p class="text-indigo-800 text-[12px] font-medium leading-relaxed" id="dashboard-ai-insight">
+                                Analyzing trends...
+                            </p>
+                        </div>
+
+                        <!-- Breakdown Grid -->
+                        <div>
+                            <h3 class="text-gray-900 font-extrabold text-[12px] mb-2 px-1 uppercase tracking-wider flex items-center shadow-sm-light">
+                                <span class="material-symbols-outlined text-primary mr-1 text-[16px]">donut_small</span>
+                                Deviation Breakdown
+                            </h3>
+                            <div id="agg-kpi-grid" class="grid grid-cols-2 gap-2">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Trend Graph -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-3">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="flex items-center space-x-2">
+                                    <h3 class="font-extrabold text-gray-900 text-[12px] uppercase tracking-wider flex items-center">
+                                        <span class="material-symbols-outlined text-primary mr-1 text-[16px]">insights</span>
+                                        7-Day Trend
+                                    </h3>
+                                    <!-- Dynamic KPI Dropdown for Graph -->
+                                    <select id="graph-kpi-select" onchange="renderSADashboard()" class="text-[10px] bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5 outline-none font-bold text-gray-700 focus:ring-1 focus:ring-blue-300">
+                                        <option value="adherence">Adherence %</option>
+                                        <option value="1">Early In</option>
+                                        <option value="2">Early Out</option>
+                                        <option value="3">Late In</option>
+                                        <option value="4">Late Out</option>
+                                        <option value="5">Scheduled/No Punch</option>
+                                        <option value="6">Unscheduled Punches</option>
+                                    </select>
+                                </div>
+                                <button onclick="toggleGraphType()" class="text-gray-600 hover:bg-gray-100 p-1 rounded-md transition-colors" title="Toggle Graph Type">
+                                    <span class="material-symbols-outlined text-[18px]" id="graph-toggle-icon">show_chart</span>
+                                </button>
+                            </div>
+                            
+                            <div class="relative h-28 mt-2">
+                                <!-- Y-Axis Grid Lines -->
+                                <div class="absolute inset-0 flex flex-col justify-between z-0">
+                                    <div class="border-b border-gray-100 w-full flex-1"></div>
+                                    <div class="border-b border-gray-100 w-full flex-1"></div>
+                                    <div class="border-b border-gray-100 w-full flex-1"></div>
+                                    <div class="border-b border-gray-300 w-full h-[1px]"></div>
+                                </div>
+                                
+                                <!-- Graph Container -->
+                                <div class="absolute inset-0 px-2 pt-2 pb-[1px]" id="trend-graph-bars">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                            <!-- X-Axis Labels -->
+                            <div class="flex justify-between text-[9px] text-gray-600 mt-1.5 font-bold uppercase tracking-widest px-2">
+                                <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span class="text-primary">Sun</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- LEVEL 2: Summary Content (Stores + KPIs directly) -->
+                    <div id="sa-summary-content" class="p-4 pb-10 hidden">
+                        <!-- Sort, Search & Expand Controls -->
+                        <div class="flex justify-between items-center mb-3">
+                            <span class="text-[11px] text-gray-500 font-bold uppercase tracking-wider bg-gray-200 px-2 py-1 rounded shadow-sm" id="summary-store-count">0 Stores</span>
+                            <div class="flex items-center space-x-3">
+                                <div class="relative" id="summary-export-container">
+                                    <button onclick="toggleExportMenu(event)" class="text-[11px] text-gray-600 font-bold uppercase tracking-wider hover:text-gray-800 transition-colors flex items-center" id="summary-export-btn">
+                                        <span class="material-symbols-outlined text-[16px] mr-1">download</span> Export
+                                    </button>
+                                    <!-- Export Format Dropdown (Only PDF now) -->
+                                    <div id="export-dropdown" class="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl z-50 hidden border border-gray-200 overflow-hidden">
+                                        <button onclick="exportSAReport('pdf')" class="w-full text-left px-4 py-3 text-[13px] font-bold text-gray-700 hover:bg-red-50 hover:text-red-700 border-b border-gray-100 flex items-center transition-colors">
+                                            <span class="material-symbols-outlined text-[18px] mr-2 text-red-500">picture_as_pdf</span> Generate PDF
+                                        </button>
+                                    </div>
+                                </div>
+                                <button onclick="toggleAllStores()" id="toggle-all-btn" class="text-[11px] text-blue-600 font-bold uppercase tracking-wider hover:text-blue-800 transition-colors flex items-center">
+                                    <span class="material-symbols-outlined text-[16px] mr-1">unfold_more</span> Expand All
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Multi-select tags container -->
+                        <div id="selected-stores-container" class="flex flex-wrap gap-1.5 mb-3 hidden"></div>
+
+                        <div id="summary-controls-row" class="flex space-x-2 items-center mb-4">
+                            <!-- Store Multi-Search -->
+                            <div class="relative flex-1">
+                                <span class="material-symbols-outlined absolute left-2.5 top-1.5 text-[18px] text-gray-400">search</span>
+                                <input type="text" id="summary-store-search" oninput="handleSearchInput(); renderSASummary()" onfocus="handleSearchInput()" autocomplete="off" placeholder="Search & select stores..." class="w-full bg-white border border-gray-200 text-sm rounded-lg pl-8 pr-2 py-1.5 outline-none shadow-sm text-gray-700 font-medium focus:ring-2 focus:ring-blue-100 transition-shadow">
+                                
+                                <!-- Search Dropdown -->
+                                <div id="store-search-dropdown" class="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 hidden max-h-48 overflow-y-auto">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                            <!-- Sort Dropdown -->
+                            <div class="relative w-[150px]" id="sort-container">
+                                <span class="material-symbols-outlined absolute left-2.5 top-1.5 text-[18px] text-gray-400">sort</span>
+                                <select id="store-sort" onchange="renderSASummary()" class="w-full bg-white border border-gray-200 text-sm rounded-lg pl-8 pr-6 py-1.5 outline-none shadow-sm text-gray-700 font-medium appearance-none focus:ring-2 focus:ring-blue-100 transition-shadow">
+                                    <option value="eoc" selected>Employee On Clock</option>
+                                    <option value="worst">Worst Performance</option>
+                                    <option value="best">Best Performance</option>
+                                </select>
+                                <span class="material-symbols-outlined text-[16px] absolute right-1.5 top-2 pointer-events-none text-gray-400">expand_more</span>
+                            </div>
+                        </div>
+
+                        <!-- Stores List -->
+                        <div id="summary-list" class="space-y-3">
+                            <!-- Populated by JS -->
+                        </div>
+                        
+                        <!-- Show More Button -->
+                        <div id="show-more-container" class="mt-6 text-center hidden">
+                            <button onclick="loadMoreStores()" class="bg-white border border-gray-300 text-gray-700 font-bold text-[13px] px-5 py-2.5 rounded-lg shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors">
+                                Show More Stores
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: Employee Details (Level 3/Drill-down) -->
+            <div id="view-employee-details" class="view-section h-full flex flex-col hidden bg-gray-50">
+                <div class="p-4 bg-white shadow-sm z-10 border-b border-gray-200">
+                    <div class="mb-3 pl-1 relative z-20">
+                        <h2 id="details-kpi-title" class="font-black text-gray-800 text-[19px] leading-tight flex items-center">
+                            KPI Title
+                        </h2>
+                        <p id="details-location-name" class="text-sm text-gray-500 flex items-center mt-1 font-medium">
+                            <!-- Populated by JS -->
+                        </p>
+                    </div>
+
+                    <div class="relative flex space-x-2">
+                        <div class="relative flex-1">
+                            <span class="material-symbols-outlined absolute left-3 top-2 text-gray-400 text-[20px]">search</span>
+                            <input type="text" id="employee-search" placeholder="Search employees by name or ID..." onkeyup="filterEmployees()" class="w-full bg-gray-100 rounded-lg pl-9 pr-3 py-1.5 outline-none border border-transparent focus:bg-white focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium">
+                        </div>
+                    </div>
+                </div>
+                <div id="employee-list" class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#F4F6F8]">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- VIEW: Global Employees On Clock -->
+            <div id="view-employees-on-clock" class="view-section h-full flex flex-col hidden bg-gray-50">
+                <div class="p-4 bg-white shadow-sm z-10 border-b border-gray-200">
+                    <div class="mb-4 pl-1 flex items-center justify-between">
+                        <div>
+                            <h2 class="font-bold text-gray-800 text-lg leading-tight">Employees On Clock</h2>
+                            <p class="text-sm text-gray-500 flex items-center mt-1 font-medium" id="eoc-store-count-label">
+                                <span class="material-symbols-outlined text-[16px] mr-1 text-primary">domain</span> 
+                                <span>All Stores</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex space-x-2 items-center" id="eoc-controls-row">
+                        <!-- Smart Store Search Dropdown -->
+                        <div class="relative w-full max-w-[180px]" id="eoc-store-smart-container">
+                            <span class="material-symbols-outlined absolute left-2.5 top-1.5 text-[18px] text-gray-400">storefront</span>
+                            <input type="text" id="eoc-store-smart-input" oninput="handleEOCStoreSearchInput()" onfocus="handleEOCStoreSearchInput()" placeholder="Select a Store" class="w-full bg-gray-100 border border-gray-200 text-sm rounded-lg pl-8 pr-6 py-1.5 outline-none shadow-sm text-gray-700 font-bold focus:ring-2 focus:ring-blue-100 transition-shadow truncate cursor-pointer text-ellipsis" autocomplete="off">
+                            <span class="material-symbols-outlined text-[16px] absolute right-1.5 top-2 pointer-events-none text-gray-400">expand_more</span>
+                            
+                            <!-- Smart Search Dropdown List -->
+                            <div id="eoc-store-smart-dropdown" class="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 hidden max-h-48 overflow-y-auto">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                        <!-- Employee Search -->
+                        <div class="relative flex-1">
+                            <span class="material-symbols-outlined absolute left-2.5 top-1.5 text-[18px] text-gray-400">search</span>
+                            <input type="text" id="eoc-employee-search" onkeyup="renderGlobalEOCList()" placeholder="Search name or ID..." class="w-full bg-gray-100 border border-transparent text-sm rounded-lg pl-8 pr-2 py-1.5 outline-none shadow-sm text-gray-700 font-medium focus:bg-white focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition-all">
+                        </div>
+                    </div>
+                </div>
+                <div id="eoc-list" class="flex-1 overflow-y-auto p-4 space-y-3 bg-[#F4F6F8]">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Overlay for Drawer -->
+        <div id="drawer-overlay" onclick="toggleDrawer()" class="absolute inset-0 bg-black/50 z-40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+        <!-- Navigation Drawer (Restored full menu) -->
+        <div id="drawer" class="absolute top-0 left-0 h-full w-[85%] bg-white z-50 transform -translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
+            <!-- Drawer Header -->
+            <div class="bg-primary pt-12 pb-5 px-5 text-white flex-shrink-0 shadow-inner">
+                <div class="flex items-center space-x-4">
+                    <div class="w-14 h-14 bg-purple-600 rounded-full flex items-center justify-center text-2xl font-medium shadow-md border-2 border-white/10">T</div>
+                    <div class="flex-1 overflow-hidden">
+                        <h3 class="text-lg font-semibold truncate tracking-wide">TestCorp</h3>
+                        <p class="text-[13px] text-gray-300 truncate" id="drawer-user-email">Daruser20@yopmail.com</p>
+                        <p class="text-[13px] text-gray-300 flex items-center mt-1">
+                            <span class="text-blue-400 font-bold mr-1">|</span> <span id="drawer-user-role">Corporate</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="mt-5 flex items-center text-xs text-gray-300 space-x-1.5 font-medium">
+                    <span class="material-symbols-outlined text-[16px]">schedule</span>
+                    <span>Fri, Apr 17 9:11 A, EST</span>
+                </div>
+            </div>
+
+            <!-- Drawer Menu Items -->
+            <div class="flex-1 overflow-y-auto no-select bg-white">
+                <nav class="flex flex-col py-1" id="drawer-nav">
+                    <!-- Core Dashboards -->
+                    <div class="admin-only-menu">
+                        <a href="#" onclick="navigateTo('view-home', 'Ranking Dashboard'); return false;" class="flex items-center px-5 py-2 bg-selectedBg border-l-4 border-selectedBorder text-gray-800">
+                            <span class="material-symbols-outlined text-gray-600 mr-4 text-[18px]">home</span>
+                            <span class="text-[13px] font-medium">Ranking Dashboard</span>
+                        </a>
+                        <a href="#" class="flex items-center px-5 py-2 border-l-4 border-transparent text-gray-700 hover:bg-gray-50">
+                            <span class="material-symbols-outlined text-gray-500 mr-4 text-[18px]">bar_chart</span>
+                            <span class="text-[13px] font-medium">DAR Dashboard</span>
+                        </a>
+                        <a href="#" class="flex items-center px-5 py-2 border-l-4 border-transparent text-gray-700 hover:bg-gray-50">
+                            <span class="material-symbols-outlined text-gray-500 mr-4 text-[18px]">show_chart</span>
+                            <span class="text-[13px] font-medium">Daily Activity Report</span>
+                        </a>
+                        <a href="#" class="flex items-center px-5 py-2 border-l-4 border-transparent text-gray-700 hover:bg-gray-50">
+                            <span class="material-symbols-outlined text-gray-500 mr-4 text-[18px]">pie_chart</span>
+                            <span class="text-[13px] font-medium">Time and Financial Loss</span>
+                        </a>
+                        <a href="#" class="flex items-center px-5 py-2 border-l-4 border-transparent text-gray-700 hover:bg-gray-50">
+                            <span class="material-symbols-outlined text-gray-500 mr-4 text-[18px]">analytics</span>
+                            <span class="text-[13px] font-medium">Analytics Dashboard</span>
+                        </a>
+                    </div>
+                    
+                    <!-- Schedule Adherence (Available to all) -->
+                    <a href="#" onclick="navigateTo('view-sa-main', 'Schedule Adherence'); return false;" class="flex items-center px-5 py-2 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 bg-gray-50" id="sa-menu-item">
+                        <span class="material-symbols-outlined text-gray-500 mr-4 text-[18px]">calendar_month</span>
+                        <span class="text-[13px] font-medium">Schedule Adherence</span>
+                    </a>
+                    
+                    <div class="admin-only-menu">
+                        <a href="#" class="flex items-center px-5 py-2 border-l-4 border-transparent text-gray-700 hover:bg-gray-50">
+                            <span class="material-symbols-outlined text-gray-500 mr-4 text-[18px]">play_lesson</span>
+                            <span class="text-[13px] font-medium">Training & Webinars</span>
+                        </a>
+
+                        <!-- Section: Communication -->
+                        <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-blue-500 uppercase tracking-wider">Communication</div>
+                        <a href="#" class="flex items-center px-5 py-2 border-l-4 border-transparent text-gray-700 hover:bg-gray-50">
+                            <span class="material-symbols-outlined text-gray-500 mr-4 text-[18px]">mail</span>
+                            <span class="text-[13px] font-medium">Invite Coworkers</span>
+                        </a>
+                        <a href="#" class="flex items-center px-5 py-2 border-l-4 border-transparent text-gray-700 hover:bg-gray-50">
+                            <span class="material-symbols-outlined text-gray-500 mr-4 text-[18px]">forum</span>
+                            <span class="text-[13px] font-medium">ChitChat</span>
+                        </a>
+
+                        <!-- Section: My Account -->
+                        <div class="px-5 pt-3 pb-1 text-[10px] font-bold text-blue-500 uppercase tracking-wider">My Account</div>
+                        <a href="#" class="flex items-center px-5 py-2 border-l-4 border-transparent text-gray-700 hover:bg-gray-50">
+                            <span class="material-symbols-outlined text-gray-500 mr-4 text-[18px]">video_library</span>
+                            <span class="text-[13px] font-medium">Training Videos</span>
+                        </a>
+                        <a href="#" class="flex items-center px-5 py-2 border-l-4 border-transparent text-gray-700 hover:bg-gray-50">
+                            <span class="material-symbols-outlined text-gray-500 mr-4 text-[18px]">help</span>
+                            <span class="text-[13px] font-medium">Help/FAQs</span>
+                        </a>
+                        <a href="#" class="flex items-center px-5 py-2 border-l-4 border-transparent text-gray-700 hover:bg-gray-50">
+                            <span class="material-symbols-outlined text-gray-500 mr-4 text-[18px]">contact_support</span>
+                            <span class="text-[13px] font-medium">Contact Us</span>
+                        </a>
+                        <a href="#" class="flex items-center px-5 py-2 border-l-4 border-transparent text-gray-700 hover:bg-gray-50 mb-2">
+                            <span class="material-symbols-outlined text-gray-500 mr-4 text-[18px]">rate_review</span>
+                            <span class="text-[13px] font-medium">Feedback</span>
+                        </a>
+                    </div>
+                </nav>
+            </div>
+            
+            <!-- Bottom fixed controls -->
+            <div class="flex-shrink-0 flex items-center h-[50px] bg-[#F4F6F8] border-t border-gray-200 no-select">
+                <button class="flex-1 flex items-center justify-center space-x-2 text-gray-700 hover:bg-gray-200 h-full transition-colors admin-only-menu">
+                    <span class="material-symbols-outlined text-[18px]">settings</span>
+                    <span class="font-medium text-[13px]">Settings</span>
+                </button>
+                <div class="w-px h-full bg-gray-300 admin-only-menu"></div>
+                <button onclick="handleLogout()" class="flex-1 flex items-center justify-center space-x-2 text-red-500 hover:bg-red-50 h-full transition-colors">
+                    <span class="material-symbols-outlined text-[18px]">logout</span>
+                    <span class="font-medium text-[13px]">Logout</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // --- Authentication & Role Management ---
+        let currentUserRole = null; // 'corpadmin' or 'manager'
+
+        function handleLogin() {
+            const user = document.getElementById('login-username').value.trim();
+            const pass = document.getElementById('login-password').value;
+            const errorEl = document.getElementById('login-error');
+
+            if (user === 'corpadmin' && pass === '12345') {
+                // Admin Login
+                currentUserRole = 'corpadmin';
+                errorEl.classList.add('hidden');
+                document.getElementById('app-header').classList.remove('hidden');
+                
+                // Show admin elements
+                document.querySelectorAll('.admin-only-menu').forEach(el => el.classList.remove('hidden'));
+                document.getElementById('region-select-wrapper').classList.remove('hidden');
+                document.getElementById('tab-switcher-container').classList.remove('hidden');
+                document.getElementById('summary-controls-row').classList.remove('hidden');
+                
+                // Drawer updates
+                document.getElementById('drawer-user-role').innerText = 'Corporate Admin';
+                document.getElementById('drawer-user-email').innerText = 'admin@testcorp.com';
+                
+                // Reset store data to all stores
+                selectedStoreIds = [];
+                renderSelectedStorePills();
+                generateAllStores();
+                navigateTo('view-home', 'Ranking Dashboard');
+
+            } else if (user === 'manager' && pass === '12345') {
+                // Manager Login
+                currentUserRole = 'manager';
+                errorEl.classList.add('hidden');
+                document.getElementById('app-header').classList.remove('hidden');
+                
+                // Hide admin elements
+                document.querySelectorAll('.admin-only-menu').forEach(el => el.classList.add('hidden'));
+                
+                // Hide region select, but keep the tab switcher visible so managers can see Dashboard graphs
+                document.getElementById('region-select-wrapper').classList.add('hidden');
+                document.getElementById('tab-switcher-container').classList.remove('hidden');
+                document.getElementById('summary-controls-row').classList.add('hidden'); // Hide search and sort as there's only 1 store
+                
+                // Drawer updates
+                document.getElementById('drawer-user-role').innerText = 'Store Manager';
+                document.getElementById('drawer-user-email').innerText = 'manager@testcorp.com';
+
+                // Restrict data to 1 single store
+                selectedStoreIds = [];
+                renderSelectedStorePills();
+                generateAllStores();
+                allStoresData = [allStoresData[0]]; // Keep only the first store
+                filteredStores = [...allStoresData];
+                
+                // For Manager Login: Expand the store by default
+                expandedStores.clear();
+                expandedStores.add(filteredStores[0].id);
+                
+                // Force navigation to Summary directly
+                navigateTo('view-sa-main', 'Schedule Adherence');
+                toggleSATab('summary');
+
+            } else {
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            if (drawerOpen) toggleDrawer();
+            
+            // Clear inputs
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            selectedStoreIds = [];
+            expandedStores.clear();
+            allExpanded = false;
+            renderSelectedStorePills();
+            
+            // Hide App Header and Navigate to Login
+            document.getElementById('app-header').classList.add('hidden');
+            navigateTo('view-login', '');
+            
+            currentUserRole = null;
+        }
+
+        // --- Core Base Logic ---
+        const drawer = document.getElementById('drawer');
+        const overlay = document.getElementById('drawer-overlay');
+        let drawerOpen = false;
+
+        function toggleDrawer() {
+            drawerOpen = !drawerOpen;
+            if (drawerOpen) {
+                drawer.classList.remove('-translate-x-full');
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                overlay.classList.add('opacity-100', 'pointer-events-auto');
+            } else {
+                drawer.classList.add('-translate-x-full');
+                overlay.classList.remove('opacity-100', 'pointer-events-auto');
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        // --- Data Mocking ---
+        const kpiTemplates = [
+            { id: 1, title: 'Early In', icon: 'login', textCol: 'text-emerald-700', bgCol: 'bg-emerald-50', iconCol: 'text-emerald-600' },
+            { id: 2, title: 'Early Out', icon: 'logout', textCol: 'text-teal-700', bgCol: 'bg-teal-50', iconCol: 'text-teal-600' },
+            { id: 3, title: 'Late In', icon: 'schedule', textCol: 'text-orange-700', bgCol: 'bg-orange-50', iconCol: 'text-orange-600' },
+            { id: 4, title: 'Late Out', icon: 'timer_off', textCol: 'text-red-700', bgCol: 'bg-red-50', iconCol: 'text-red-600' },
+            { id: 5, title: 'Scheduled/ No Punch', icon: 'event_busy', textCol: 'text-gray-700', bgCol: 'bg-gray-100', iconCol: 'text-gray-600' },
+            { id: 6, title: 'Unscheduled Punches', icon: 'more_time', textCol: 'text-blue-700', bgCol: 'bg-blue-50', iconCol: 'text-blue-600' }
+        ];
+
+        const regionTypes = ['north', 'south', 'east', 'west'];
+        
+        // 35 Unique Location Names
+        const storeNamesList = [
+            'Winter Park', 'Downtown Branch', 'Westside Mall', 'Northside Plaza', 'Oak Creek',
+            'Pine Valley', 'Cedar Ridge', 'Maple Grove', 'Lakeview', 'Hilltop',
+            'Riverfront', 'Southside Station', 'East End Market', 'Westside Crossing', 'Central Square',
+            'Uptown Boulevard', 'Midtown Center', 'Downtown Hub', 'Suburban Heights', 'Airport Terminal',
+            'Main Street Station', 'Harbor Point', 'Marina Bay', 'Beachfront Promenade', 'Mountain View',
+            'Valley Forge', 'Forest Park', 'Desert Springs', 'Oasis Plaza', 'Island Resort',
+            'Peninsula Walk', 'Cape Cod', 'Bay Area', 'Gulf Coast', 'Cove Settlement'
+        ];
+        
+        const realisticEmployeeNames = [
+            'James Smith', 'Maria Garcia', 'Robert Johnson', 'David Miller', 'Mary Davis', 
+            'Jane Martinez', 'William Wilson', 'John Moore', 'Richard Taylor', 'Thomas Anderson', 
+            'Charles Thomas', 'Christopher Jackson', 'Daniel White', 'Matthew Harris', 'Anthony Martin', 
+            'Mark Thompson', 'Donald Lewis', 'Steven Walker', 'Paul Robinson', 'Andrew Clark'
+        ];
+        
+        let allStoresData = [];
+        let filteredStores = [];
+
+        function generateAllStores() {
+            const insightTemplates = [
+                "Late clock-ins peak on Fridays.", 
+                "Consider adjusting scheduling buffer by 15 mins.", 
+                "Excellent adherence compared to regional average.",
+                "Unscheduled punches are higher than normal this week.",
+                "Early clock-outs typically occur during closing shifts."
+            ];
+
+            allStoresData = Array.from({ length: 35 }, (_, i) => {
+                const adherence = Math.floor(Math.random() * 30) + 70; // 70 to 100%
+                const onClockCount = Math.floor(Math.random() * 25) + 5; // Mock data for Employees on Clock
+                
+                // Format Store ID to be realistic numerical string (e.g., 1042)
+                const storeIdNum = (1013 + i * 17).toString().padStart(4, '0');
+
+                // Pre-generate on-clock employees for accurate durations
+                const onClockEmployees = Array.from({length: onClockCount}, (_, j) => {
+                    const now = new Date();
+                    // Generate a punch time between 0.5 and 9 hours ago
+                    const hoursAgo = 0.5 + Math.random() * 8.5; 
+                    const punchDate = new Date(now.getTime() - (hoursAgo * 60 * 60 * 1000));
+                    
+                    let ph = punchDate.getHours();
+                    let pm = punchDate.getMinutes().toString().padStart(2, '0');
+                    const ampm = ph >= 12 ? 'PM' : 'AM';
+                    ph = ph % 12; ph = ph ? ph : 12; 
+                    const actualStr = `0${ph}`.slice(-2) + `:${pm} ${ampm}`;
+
+                    // Scheduled start is typically close to punch time (rounded)
+                    let sh = punchDate.getHours();
+                    const sampm = sh >= 12 ? 'PM' : 'AM';
+                    let endSh = (sh + 8) % 24;
+                    const eampm = endSh >= 12 ? 'PM' : 'AM';
+                    
+                    sh = sh % 12; sh = sh ? sh : 12;
+                    endSh = endSh % 12; endSh = endSh ? endSh : 12;
+
+                    const schedStr = `0${sh}`.slice(-2) + `:00 ${sampm} - ` + `0${endSh}`.slice(-2) + `:00 ${eampm}`;
+                    
+                    const randomName = realisticEmployeeNames[Math.floor(Math.random() * realisticEmployeeNames.length)];
+                    const randomTimecard = Math.floor(100000 + Math.random() * 900000); 
+
+                    return {
+                        name: randomName,
+                        id: randomTimecard.toString(),
+                        scheduled: schedStr,
+                        actual: actualStr,
+                        punchDate: punchDate 
+                    };
+                });
+
+                // Pre-calculate deviations so UI and Excel export always show the same accurate data
+                const kpis = [];
+                const kpiDetails = {};
+
+                kpiTemplates.forEach(k => {
+                    const count = Math.floor(Math.random() * (adherence < 85 ? 20 : 8));
+                    kpis.push({...k, count: count});
+                    
+                    const emps = [];
+                    for(let j = 0; j < count; j++) {
+                        const schedHour = 8;
+                        const actMin = 15 + (j * 5 % 45);
+
+                        let scheduledText = `08:00 AM - 05:00 PM`;
+                        let actualText = '';
+
+                        // Generate Complete Detailed Punch Times
+                        if (k.title.includes('Early In')) actualText = `07:${actMin} AM - 05:00 PM`;
+                        else if (k.title.includes('Late In')) actualText = `08:${actMin} AM - 05:00 PM`;
+                        else if (k.title.includes('Early Out')) actualText = `08:00 AM - 04:${actMin} PM`;
+                        else if (k.title.includes('Late Out')) actualText = `08:00 AM - 05:${actMin} PM`;
+                        else if (k.title.includes('No Punch')) { actualText = 'Missing'; }
+                        else if (k.title.includes('Unscheduled')) { scheduledText = 'Not Scheduled'; actualText = `08:00 AM - 12:${actMin} PM`; }
+                        else actualText = `08:00 AM - 05:00 PM`;
+
+                        const randomName = realisticEmployeeNames[Math.floor(Math.random() * realisticEmployeeNames.length)];
+                        const randomTimecard = Math.floor(800000 + Math.random() * 100000).toString();
+
+                        emps.push({
+                            name: randomName,
+                            idLabel: 'Timecard',
+                            id: randomTimecard,
+                            scheduled: scheduledText,
+                            actualLabel: 'Punch Time',
+                            actual: actualText,
+                            status: k.title,
+                            badgeText: k.textCol,
+                            badgeBg: k.bgCol
+                        });
+                    }
+                    kpiDetails[k.id] = emps;
+                });
+
+                return {
+                    id: storeIdNum,
+                    name: storeNamesList[i],
+                    region: regionTypes[i % 4],
+                    adherence: adherence,
+                    onClock: onClockCount,
+                    onClockEmployees: onClockEmployees,
+                    aiInsight: insightTemplates[Math.floor(Math.random() * insightTemplates.length)],
+                    kpis: kpis,
+                    kpiDetails: kpiDetails
+                };
+            });
+            filteredStores = [...allStoresData];
+            visibleStoresLimit = 10;
+        }
+
+        // Current state
+        let currentTab = 'dashboard';
+        let graphType = 'bar'; // Global state for Graph toggle
+        let visibleStoresLimit = 10; // Pagination limit
+        let selectedStoreIds = []; // Active tags for multi-select store filtering
+        
+        // Expansion UI State
+        let expandedStores = new Set();
+        let allExpanded = false;
+        let currentVisibleStores = []; // Helper to track currently rendered stores
+
+        // --- Adherence Color Logic ---
+        function getAdherenceStyle(percent) {
+            if (percent >= 95) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            if (percent >= 85) return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+            return 'bg-red-50 text-red-700 border-red-200';
+        }
+
+        // --- View Navigation ---
+        const headerTitle = document.getElementById('header-title');
+        const headerIcon = document.getElementById('header-icon');
+        const headerLeftBtn = document.getElementById('header-left-btn');
+
+        function navigateTo(viewId, title) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('block', 'flex'));
+            
+            const targetView = document.getElementById(viewId);
+            targetView.classList.remove('hidden');
+            targetView.classList.add(viewId === 'view-home' || viewId === 'view-login' ? 'block' : 'flex'); 
+
+            // Header Config
+            const exportDropdown = document.getElementById('export-dropdown');
+            if (exportDropdown) exportDropdown.classList.add('hidden'); // Ensure dropdown is closed
+
+            if (viewId === 'view-login') {
+                // Do nothing to header (it's hidden in handleLogout)
+            } else if (viewId === 'view-home') {
+                headerTitle.classList.add('hidden');
+                headerIcon.innerText = 'menu';
+                headerLeftBtn.onclick = toggleDrawer;
+            } else if (viewId === 'view-sa-main') {
+                headerTitle.classList.remove('hidden');
+                headerTitle.innerText = title;
+                headerIcon.innerText = 'menu';
+                headerLeftBtn.onclick = toggleDrawer;
+                applyFilters(); // Initialize data
+            } else {
+                headerTitle.classList.remove('hidden');
+                headerTitle.innerText = title;
+                headerIcon.innerText = 'arrow_back';
+                
+                if (viewId === 'view-employee-details') {
+                    // Export button stays hidden here to avoid dead clicks (handled at store level)
+                    headerLeftBtn.onclick = () => {
+                        // Go back to the main summary screen directly
+                        navigateTo('view-sa-main', 'Schedule Adherence');
+                    };
+                } else if (viewId === 'view-employees-on-clock') {
+                    headerLeftBtn.onclick = () => {
+                        navigateTo('view-sa-main', 'Schedule Adherence');
+                    };
+                }
+            }
+            if (drawerOpen) toggleDrawer();
+        }
+
+        // --- Level 1 & 2 logic ---
+        function toggleSATab(tab) {
+            currentTab = tab;
+            const dbBtn = document.getElementById('tab-dashboard');
+            const sumBtn = document.getElementById('tab-summary');
+            const dbContent = document.getElementById('sa-dashboard-content');
+            const sumContent = document.getElementById('sa-summary-content');
+
+            if (tab === 'dashboard') {
+                dbBtn.className = 'flex-1 py-1 rounded-md tab-active transition-all';
+                sumBtn.className = 'flex-1 py-1 rounded-md tab-inactive transition-all';
+                dbContent.classList.remove('hidden');
+                dbContent.classList.add('block');
+                sumContent.classList.add('hidden');
+            } else {
+                sumBtn.className = 'flex-1 py-1 rounded-md tab-active transition-all';
+                dbBtn.className = 'flex-1 py-1 rounded-md tab-inactive transition-all';
+                sumContent.classList.remove('hidden');
+                sumContent.classList.add('block');
+                dbContent.classList.add('hidden');
+            }
+            applyFilters(); // Re-render active tab
+        }
+
+        function handleDateChange() {
+            // Trigger completely new dataset calculation to simulate changing data with dates
+            generateAllStores();
+            if (currentUserRole === 'manager') {
+                allStoresData = [allStoresData[0]]; // restrict again for manager after refresh
+            }
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const selectedRegion = document.getElementById('region-select').value;
+            filteredStores = selectedRegion === 'corporate' || selectedRegion === 'all' 
+                ? [...allStoresData] 
+                : allStoresData.filter(s => s.region === selectedRegion);
+            
+            // Clean up selected stores if they no longer fall into the active region filter
+            selectedStoreIds = selectedStoreIds.filter(id => filteredStores.some(s => s.id === id));
+            renderSelectedStorePills();
+            
+            visibleStoresLimit = 10; // Reset pagination on filter change
+            
+            if (currentTab === 'dashboard') renderSADashboard();
+            else renderSASummary();
+        }
+
+        function loadMoreStores() {
+            visibleStoresLimit += 10;
+            renderSASummary();
+        }
+
+        function toggleGraphType() {
+            graphType = graphType === 'bar' ? 'line' : 'bar';
+            document.getElementById('graph-toggle-icon').innerText = graphType === 'bar' ? 'show_chart' : 'bar_chart';
+            renderSADashboard();
+        }
+
+        // --- Store Expansion UI Logic ---
+        function toggleAllStores() {
+            allExpanded = !allExpanded;
+            if (allExpanded) {
+                currentVisibleStores.forEach(s => expandedStores.add(s.id));
+            } else {
+                expandedStores.clear();
+            }
+            renderSASummary();
+        }
+
+        function toggleStore(storeId) {
+            if (expandedStores.has(storeId)) {
+                expandedStores.delete(storeId);
+                allExpanded = false;
+            } else {
+                expandedStores.add(storeId);
+            }
+            renderSASummary();
+        }
+
+
+        // --- Multi Store Selection UI Logic ---
+        function handleSearchInput() {
+            const query = document.getElementById('summary-store-search').value.toLowerCase();
+            const dropdown = document.getElementById('store-search-dropdown');
+            
+            // Allow typing to live-filter the main list directly if no specific pills are selected
+            renderSASummary();
+
+            // Populate the multi-select dropdown, excluding stores that are already selected
+            const availableStores = filteredStores.filter(store => 
+                !selectedStoreIds.includes(store.id) && 
+                store.name.toLowerCase().includes(query)
+            );
+
+            if (availableStores.length === 0) {
+                dropdown.innerHTML = '<div class="px-3 py-2 text-xs text-gray-500 text-center">No stores found</div>';
+            } else {
+                dropdown.innerHTML = availableStores.map(store => `
+                    <div onclick="toggleStoreSelection('${store.id}')" class="px-3 py-2.5 text-[13px] text-gray-700 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0 truncate flex items-center justify-between transition-colors">
+                        <span>${store.name}</span>
+                        <span class="material-symbols-outlined text-[16px] text-blue-500">add_circle</span>
+                    </div>
+                `).join('');
+            }
+            dropdown.classList.remove('hidden');
+        }
+
+        function toggleStoreSelection(storeId) {
+            if (!selectedStoreIds.includes(storeId)) {
+                selectedStoreIds.push(storeId);
+            }
+            document.getElementById('summary-store-search').value = '';
+            document.getElementById('store-search-dropdown').classList.add('hidden');
+            renderSelectedStorePills();
+            renderSASummary();
+        }
+
+        function removeStoreSelection(storeId) {
+            selectedStoreIds = selectedStoreIds.filter(id => id !== storeId);
+            renderSelectedStorePills();
+            renderSASummary();
+        }
+
+        // Toggles global export menu
+        function toggleExportMenu(event) {
+            if (event) event.stopPropagation();
+            document.getElementById('export-dropdown').classList.toggle('hidden');
+        }
+
+        // Toggles specific store export menu
+        function toggleStoreExportMenu(event, storeId) {
+            if (event) event.stopPropagation();
+            // Close any other store dropdowns
+            document.querySelectorAll('[id^="export-dropdown-S"]').forEach(el => {
+                if (el.id !== `export-dropdown-${storeId}`) {
+                    el.classList.add('hidden');
+                }
+            });
+            const dropdown = document.getElementById(`export-dropdown-${storeId}`);
+            if (dropdown) dropdown.classList.toggle('hidden');
+        }
+
+        function renderSelectedStorePills() {
+            const container = document.getElementById('selected-stores-container');
+            if (selectedStoreIds.length === 0) {
+                container.innerHTML = '';
+                container.classList.add('hidden');
+                return;
+            }
+            container.classList.remove('hidden');
+            container.innerHTML = selectedStoreIds.map(id => {
+                const store = allStoresData.find(s => s.id === id);
+                return `
+                    <div class="flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-lg text-[11px] font-bold border border-blue-200 shadow-sm transition-all hover:bg-blue-200">
+                        <span class="truncate max-w-[140px]">${store.name.split(' - ')[0]}</span>
+                        <span class="material-symbols-outlined text-[14px] ml-1 cursor-pointer hover:text-red-500 transition-colors" onclick="removeStoreSelection('${id}')">cancel</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Close search & export dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            // Main Summary Dropdown
+            const searchInput = document.getElementById('summary-store-search');
+            const dropdown = document.getElementById('store-search-dropdown');
+            if (searchInput && dropdown) {
+                if (!searchInput.contains(event.target) && !dropdown.contains(event.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+
+            // EOC Smart Search Dropdown
+            const eocInput = document.getElementById('eoc-store-smart-input');
+            const eocDropdown = document.getElementById('eoc-store-smart-dropdown');
+            if (eocInput && eocDropdown) {
+                if (!eocInput.contains(event.target) && !eocDropdown.contains(event.target)) {
+                    eocDropdown.classList.add('hidden');
+                    // Reset input text to match active selection if blurred
+                    const s = filteredStores.find(x => x.id === activeEOCStoreId);
+                    if (s) eocInput.value = s.name;
+                }
+            }
+
+            // Global Export Dropdown Close Listener
+            const exportBtn = document.getElementById('summary-export-btn');
+            const exportDropdown = document.getElementById('export-dropdown');
+            if (exportBtn && exportDropdown) {
+                if (!exportBtn.contains(event.target) && !exportDropdown.contains(event.target)) {
+                    exportDropdown.classList.add('hidden');
+                }
+            }
+
+            // Store Export Dropdowns Close Listener
+            if (!event.target.closest('[id^="export-dropdown-S"]') && !event.target.closest('.store-export-btn')) {
+                document.querySelectorAll('[id^="export-dropdown-S"]').forEach(el => el.classList.add('hidden'));
+            }
+        });
+
+        function renderSADashboard() {
+            // Calculate Aggregate KPIs for rendering current scope
+            const totals = kpiTemplates.map(t => ({...t, count: 0}));
+            let totalAdherence = 0;
+            let totalDeviations = 0;
+
+            filteredStores.forEach(store => {
+                totalAdherence += store.adherence;
+                store.kpis.forEach((kpi, idx) => {
+                    totals[idx].count += kpi.count;
+                    totalDeviations += kpi.count;
+                });
+            });
+
+            const avgAdherence = filteredStores.length ? Math.round(totalAdherence / filteredStores.length) : 0;
+            
+            // Render Executive Header
+            document.getElementById('avg-adherence-display').innerHTML = `${avgAdherence}<span class="text-xl mt-1">%</span>`;
+            document.getElementById('total-deviations-display').innerText = totalDeviations.toLocaleString();
+            
+            const trendBadge = document.getElementById('adherence-trend-badge');
+            const aiInsight = document.getElementById('dashboard-ai-insight');
+            
+            if (avgAdherence >= 90) {
+                trendBadge.innerHTML = `<span class="material-symbols-outlined text-[14px] mr-1">trending_up</span> On Track`;
+                trendBadge.className = 'text-emerald-400 text-[10px] font-extrabold mt-1 flex items-center bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-400/20 uppercase tracking-wide w-max';
+                aiInsight.innerHTML = currentUserRole === 'manager' ? `<strong>Great job!</strong> Your store adherence is above target.` : `<strong>Great job!</strong> Corporate adherence is above target. Deviations are primarily driven by minor <strong>Late In</strong> punches across the West Region.`;
+            } else if (avgAdherence >= 80) {
+                trendBadge.innerHTML = `<span class="material-symbols-outlined text-[14px] mr-1">trending_flat</span> Warning`;
+                trendBadge.className = 'text-yellow-400 text-[10px] font-extrabold mt-1 flex items-center bg-yellow-400/10 px-2 py-0.5 rounded border border-yellow-400/20 uppercase tracking-wide w-max';
+                aiInsight.innerHTML = currentUserRole === 'manager' ? `Adherence has dipped below 90%. Consider reviewing shift coverage for deviations.` : `Adherence has dipped below 90%. <strong>Early Out</strong> deviations have spiked by 12% compared to yesterday. Consider reviewing shift coverage.`;
+            } else {
+                trendBadge.innerHTML = `<span class="material-symbols-outlined text-[14px] mr-1">trending_down</span> Critical`;
+                trendBadge.className = 'text-red-400 text-[10px] font-extrabold mt-1 flex items-center bg-red-400/10 px-2 py-0.5 rounded border border-red-400/20 uppercase tracking-wide w-max';
+                aiInsight.innerHTML = currentUserRole === 'manager' ? `<strong>Action Required:</strong> Critical adherence levels detected for your location.` : `<strong>Action Required:</strong> Critical adherence levels detected. <strong>Unscheduled Punches</strong> and <strong>Late Ins</strong> are significantly impacting labor costs.`;
+            }
+
+            // Render Aggregate Grid
+            document.getElementById('agg-kpi-grid').innerHTML = totals.map(kpi => `
+                <div class="bg-white rounded-lg p-2 shadow-sm border border-gray-200 flex items-center">
+                    <div class="w-8 h-8 rounded-md ${kpi.bgCol} flex items-center justify-center mr-2.5 flex-shrink-0 border border-black/5">
+                        <span class="material-symbols-outlined ${kpi.iconCol} text-[18px]">${kpi.icon}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-[9px] font-extrabold text-gray-600 uppercase tracking-wider leading-tight truncate">${kpi.title}</div>
+                        <div class="text-base font-black text-gray-900 leading-none mt-0.5">${kpi.count}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Render Graph (Bar or Line mode) with Dynamic KPI Selection Support
+            const trendBars = document.getElementById('trend-graph-bars');
+            const graphKpi = document.getElementById('graph-kpi-select') ? document.getElementById('graph-kpi-select').value : 'adherence';
+            
+            let mockTrend = [];
+            let maxVal = 100;
+            let strokeColor = '#3b82f6';
+            let colorFrom = 'from-blue-500';
+            let colorTo = 'from-blue-600';
+            
+            if (graphKpi === 'adherence') {
+                mockTrend = [
+                    Math.max(40, avgAdherence - 12), Math.max(40, avgAdherence - 5),
+                    Math.max(40, avgAdherence - 2), Math.min(100, avgAdherence + 4), 
+                    Math.max(40, avgAdherence - 7), Math.max(40, avgAdherence - 3),
+                    avgAdherence // Today
+                ].map(v => Math.min(100, v)); 
+                maxVal = 100;
+            } else {
+                // Find current total for the selected KPI
+                const kpiTotalObj = totals.find(t => t.id.toString() === graphKpi);
+                const baseCount = kpiTotalObj ? kpiTotalObj.count : 0;
+                
+                // Add some realistic noise for 7-day trend based on current total
+                mockTrend = [
+                    Math.max(0, baseCount + Math.floor(Math.random() * 5) - 2), 
+                    Math.max(0, baseCount + Math.floor(Math.random() * 8) - 3),
+                    Math.max(0, baseCount + Math.floor(Math.random() * 6) - 1), 
+                    Math.max(0, baseCount + Math.floor(Math.random() * 10) - 4), 
+                    Math.max(0, baseCount + Math.floor(Math.random() * 4) - 2), 
+                    Math.max(0, baseCount + Math.floor(Math.random() * 3) + 1),
+                    baseCount // Today
+                ];
+                const highPoint = Math.max(...mockTrend);
+                maxVal = highPoint < 10 ? 10 : highPoint * 1.2; // scaling buffer
+                
+                // Adopt the color of the selected KPI
+                const kpiDef = kpiTemplates.find(k => k.id.toString() === graphKpi);
+                if (kpiDef) {
+                    const colorPrefix = kpiDef.textCol.split('-')[1] || 'blue'; // e.g. emerald
+                    const hexMap = { 'emerald': '#10b981', 'teal': '#14b8a6', 'orange': '#f97316', 'red': '#ef4444', 'gray': '#6b7280', 'blue': '#3b82f6' };
+                    strokeColor = hexMap[colorPrefix] || '#3b82f6';
+                }
+            }
+
+            if (graphType === 'bar') {
+                trendBars.className = 'absolute inset-0 px-2 pt-2 pb-[1px] flex items-end justify-between';
+                trendBars.innerHTML = mockTrend.map((val, idx) => {
+                    const isToday = idx === 6; 
+                    if (graphKpi === 'adherence') {
+                        colorFrom = val >= 95 ? 'from-emerald-500' : val >= 85 ? 'from-yellow-500' : 'from-red-500';
+                        colorTo = val >= 95 ? 'to-emerald-600' : val >= 85 ? 'to-yellow-600' : 'to-red-600';
+                    }
+
+                    // For counts, rely directly on dynamic styling, for adherence use standard tailwind classes
+                    const barStyle = graphKpi === 'adherence' 
+                        ? `class="w-full bg-gradient-to-t ${colorFrom} ${colorTo} rounded-t transition-all duration-700 ease-out shadow-sm ${isToday ? 'opacity-100 ring-1 ring-black/10' : 'opacity-85 group-hover:opacity-100'}" style="height: ${(val / maxVal) * 100}%"`
+                        : `class="w-full rounded-t transition-all duration-700 ease-out shadow-sm ${isToday ? 'opacity-100 ring-1 ring-black/10' : 'opacity-85 group-hover:opacity-100'}" style="background-color: ${strokeColor}; height: ${(val / maxVal) * 100}%"`;
+
+                    return `
+                    <div class="relative w-6 flex flex-col justify-end items-center group h-full z-10 cursor-pointer">
+                        <div class="absolute -top-7 bg-gray-900 text-white text-[10px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg z-20 pointer-events-none">
+                            ${val}${graphKpi === 'adherence' ? '%' : ''}
+                            <div class="absolute bottom-[-4px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-l-transparent border-r-transparent border-t-gray-900"></div>
+                        </div>
+                        <div ${barStyle}></div>
+                    </div>`;
+                }).join('');
+            } else {
+                // Line Graph Mode
+                trendBars.className = 'absolute inset-0 px-2 pt-2 pb-[1px]';
+                if (graphKpi === 'adherence') {
+                    strokeColor = avgAdherence >= 95 ? '#10b981' : (avgAdherence >= 85 ? '#eab308' : '#ef4444');
+                }
+                const pointsStr = mockTrend.map((val, idx) => `${(idx/6)*100},${100 - ((val/maxVal)*100)}`).join(' ');
+
+                let svgHTML = `
+                <div class="relative w-full h-full">
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="absolute inset-0 w-full h-full z-0 overflow-visible">
+                        <defs>
+                            <linearGradient id="lineGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="${strokeColor}" stop-opacity="0.25"/>
+                                <stop offset="100%" stop-color="${strokeColor}" stop-opacity="0.0"/>
+                            </linearGradient>
+                        </defs>
+                        <polygon points="0,100 ${pointsStr} 100,100" fill="url(#lineGrad)" />
+                        <polyline points="${pointsStr}" fill="none" stroke="${strokeColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+                    </svg>
+                    <!-- Overlays for interaction -->
+                    ${mockTrend.map((val, idx) => `
+                        <div class="absolute group cursor-pointer z-10 flex flex-col items-center justify-center" style="left: ${(idx/6)*100}%; top: ${100 - ((val/maxVal)*100)}%; transform: translate(-50%, -50%); width: 24px; height: 24px;">
+                            <div class="w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm ${idx === 6 ? 'scale-125 ring-2 ring-blue-100' : 'group-hover:scale-150'} transition-transform" style="background-color: ${strokeColor}"></div>
+                            <div class="absolute bottom-5 bg-gray-900 text-white text-[10px] font-bold px-2 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-lg pointer-events-none">
+                                ${val}${graphKpi === 'adherence' ? '%' : ''}
+                                <div class="absolute bottom-[-4px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-[4px] border-r-[4px] border-t-[4px] border-l-transparent border-r-transparent border-t-gray-900"></div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>`;
+                trendBars.innerHTML = svgHTML;
+            }
+        }
+
+        function renderSASummary() {
+            const sortType = document.getElementById('store-sort') ? document.getElementById('store-sort').value : 'eoc';
+            
+            let displayStores = [...filteredStores];
+
+            // 1. Multi-store Selection logic (or fallback to text search if no pills active)
+            if (selectedStoreIds.length > 0) {
+                displayStores = displayStores.filter(store => selectedStoreIds.includes(store.id));
+            } else {
+                const searchQuery = document.getElementById('summary-store-search') ? document.getElementById('summary-store-search').value.toLowerCase() : '';
+                if (searchQuery) {
+                    displayStores = displayStores.filter(store => store.name.toLowerCase().includes(searchQuery));
+                }
+            }
+            
+            // 2. Sorting logic 
+            if (sortType === 'eoc') {
+                displayStores.sort((a, b) => b.onClock - a.onClock); // Default High to Low on EOC
+            } else if (sortType === 'worst') {
+                displayStores.sort((a, b) => a.adherence - b.adherence);
+            } else if (sortType === 'best') {
+                displayStores.sort((a, b) => b.adherence - a.adherence);
+            }
+
+            // 3. Paginate & Track Visibles
+            const visibleStores = displayStores.slice(0, visibleStoresLimit);
+            currentVisibleStores = visibleStores;
+
+            // Update store count text to show "Showing X/Y Stores"
+            document.getElementById('summary-store-count').innerText = currentUserRole === 'corpadmin' 
+                ? `Showing ${visibleStores.length}/${displayStores.length} Stores`
+                : '1 Store Assigned';
+
+            // Update toggle all button state depending on User Role
+            const toggleAllBtn = document.getElementById('toggle-all-btn');
+            const exportContainer = document.getElementById('summary-export-container');
+            
+            if (currentUserRole === 'manager') {
+                if (toggleAllBtn) toggleAllBtn.classList.add('hidden'); // Hide expand all option for manager
+                if (exportContainer) exportContainer.classList.add('hidden'); // Hide global export for manager
+            } else {
+                if (exportContainer) exportContainer.classList.remove('hidden');
+                if (toggleAllBtn) {
+                    toggleAllBtn.classList.remove('hidden');
+                    if (allExpanded && expandedStores.size > 0) {
+                        toggleAllBtn.innerHTML = `<span class="material-symbols-outlined text-[16px] mr-1">unfold_less</span> Collapse All`;
+                    } else {
+                        toggleAllBtn.innerHTML = `<span class="material-symbols-outlined text-[16px] mr-1">unfold_more</span> Expand All`;
+                    }
+                }
+            }
+
+            // ONE LAYER DRILL DOWN: Collapsible Store header + KPI grid
+            document.getElementById('summary-list').innerHTML = visibleStores.map(store => {
+                const totalAlerts = store.kpis.reduce((sum, kpi) => sum + kpi.count, 0);
+                const adColor = getAdherenceStyle(store.adherence);
+                const isExpanded = expandedStores.has(store.id);
+                
+                return `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-2.5 relative hover:z-40 transition-shadow">
+                    <!-- Store Info Header (Collapsible Toggle) -->
+                    <div class="px-3 py-2.5 flex items-center justify-between border-b border-gray-100 bg-gray-50/50 cursor-pointer hover:bg-gray-100 transition-colors ${isExpanded ? 'rounded-t-xl' : 'rounded-xl'}" onclick="toggleStore('${store.id}')">
+                        <!-- Left Side: Store ID, Name & Minor KPIs -->
+                        <div class="flex-1 overflow-hidden pr-2">
+                            <div class="flex items-center mb-1">
+                                <span class="text-[11px] bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded mr-1.5 font-bold tracking-tight">${store.id}</span>
+                                <h4 class="font-bold text-gray-800 text-[14px] truncate">${store.name}</h4>
+                            </div>
+                            <div class="flex items-center text-[12px] font-bold space-x-3 pl-0.5">
+                                <span onclick="event.stopPropagation(); openGlobalEmployeesOnClock('${store.id}')" class="flex items-center text-blue-600 hover:text-blue-800 transition-colors cursor-pointer">
+                                    <span class="material-symbols-outlined text-[15px] mr-1">group</span>
+                                    <span>${store.onClock}</span>
+                                    <span class="ml-1 text-[10px] uppercase tracking-wide opacity-80 font-semibold">On Clock</span>
+                                </span>
+                                <span class="text-gray-300">|</span>
+                                <span class="flex items-center text-red-500">
+                                    <span class="material-symbols-outlined text-[15px] mr-1">warning</span>
+                                    <span>${totalAlerts}</span>
+                                    <span class="ml-1 text-[10px] uppercase tracking-wide opacity-80 font-semibold">Alerts</span>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Right Side: Adherence %, Export & Expand -->
+                        <div class="flex items-center space-x-2 pl-2">
+                            <div class="relative group cursor-help hover:z-50" onclick="event.stopPropagation();">
+                                <div class="${adColor} px-2 py-1.5 rounded-md font-bold text-[14px] border shadow-sm flex items-center justify-center min-w-[60px]">
+                                    ${store.adherence}%
+                                    <span class="material-symbols-outlined text-[12px] ml-0.5 opacity-60">info</span>
+                                </div>
+                                <!-- Hover Tooltip Text update -->
+                                <div class="absolute bottom-full right-[-10px] mb-2 w-[180px] bg-gray-900 text-white px-3 py-2 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-xl border border-gray-700 pointer-events-none flex items-center justify-center z-[100] text-center">
+                                    <span class="text-[10px] leading-snug font-medium">The percentage shown reflects the last posted week.</span>
+                                    <!-- Tooltip Arrow -->
+                                    <div class="absolute -bottom-1.5 right-6 w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900"></div>
+                                </div>
+                            </div>
+
+                            <!-- Store-Level Export Button & Dropdown -->
+                            <div class="relative group" onclick="event.stopPropagation();">
+                                <button onclick="toggleStoreExportMenu(event, '${store.id}')" class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-200 store-export-btn">
+                                    <span class="material-symbols-outlined text-[20px] pointer-events-none">download</span>
+                                </button>
+                                <!-- Store specific Export Dropdown -->
+                                <div id="export-dropdown-${store.id}" class="absolute right-0 top-full mt-1 w-40 bg-white rounded-xl shadow-xl z-50 hidden border border-gray-200 overflow-hidden">
+                                    <button onclick="exportStoreReport('${store.id}', 'pdf')" class="w-full text-left px-3 py-2.5 text-[12px] font-bold text-gray-700 hover:bg-red-50 hover:text-red-700 border-b border-gray-100 flex items-center transition-colors">
+                                        <span class="material-symbols-outlined text-[16px] mr-2 text-red-500">picture_as_pdf</span> Generate PDF
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <span class="material-symbols-outlined text-gray-400 text-[22px] transition-transform ${isExpanded ? 'rotate-180' : ''}">expand_more</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Collapsible Expanded Body (NO AI Insights here) -->
+                    <div class="${isExpanded ? 'block' : 'hidden'} animate-fade-in-down rounded-b-xl overflow-hidden pb-1 bg-gray-200">
+                        <!-- KPI Grid (Click to drill down to employees) -->
+                        <div class="grid grid-cols-3 gap-px">
+                            ${store.kpis.map(kpi => `
+                                <div onclick="openEmployeeDetails('${store.id}', ${kpi.id})" 
+                                     class="bg-white p-3 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 active:bg-blue-50 transition-colors group relative">
+                                    <span class="material-symbols-outlined ${kpi.iconCol} text-[22px] mb-1 opacity-90 group-hover:scale-110 transition-transform">${kpi.icon}</span>
+                                    <span class="text-[17px] font-bold text-gray-800 leading-none mb-1">${kpi.count}</span>
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-tight">${kpi.title}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+            
+            // 4. Toggle Show More Button
+            const showMoreContainer = document.getElementById('show-more-container');
+            if (visibleStoresLimit < displayStores.length && currentUserRole === 'corpadmin') {
+                showMoreContainer.classList.remove('hidden');
+            } else {
+                showMoreContainer.classList.add('hidden');
+            }
+        }
+
+        // --- Level 3: Employee Drill-down (Direct from Summary now) ---
+        let currentEmployees = [];
+        let activeEOCStoreId = null; // State for global employees on clock smart search
+        
+        function openGlobalEmployeesOnClock(storeId = null) {
+            navigateTo('view-employees-on-clock', 'Employees On Clock');
+            
+            // Determine active mode: 'all' shows the Table, specific ID shows the Employee list
+            if (!storeId || storeId === 'all') {
+                activeEOCStoreId = 'all';
+            } else {
+                activeEOCStoreId = storeId;
+            }
+
+            const smartContainer = document.getElementById('eoc-store-smart-container');
+            const smartInput = document.getElementById('eoc-store-smart-input');
+            const store = filteredStores.find(s => s.id === activeEOCStoreId);
+            
+            // Populate store dropdown based on role
+            if (currentUserRole === 'corpadmin') {
+                if (activeEOCStoreId === 'all') {
+                    document.getElementById('eoc-store-count-label').innerHTML = `<span class="material-symbols-outlined text-[16px] mr-1 text-primary">domain</span> <span>All Stores</span>`;
+                    smartInput.value = '';
+                    smartInput.placeholder = 'Select a Store';
+                } else {
+                    document.getElementById('eoc-store-count-label').innerHTML = `<span class="material-symbols-outlined text-[16px] mr-1 text-primary">storefront</span> <span class="truncate">${store ? store.name : ''}</span>`;
+                    smartInput.value = store ? store.name : '';
+                }
+                smartContainer.classList.remove('hidden');
+            } else {
+                // Manager only sees their assigned store
+                const managerStoreName = filteredStores.length > 0 ? filteredStores[0].name : '';
+                document.getElementById('eoc-store-count-label').innerHTML = `<span class="material-symbols-outlined text-[16px] mr-1 text-primary">storefront</span> <span class="truncate">${managerStoreName}</span>`;
+                smartContainer.classList.add('hidden'); // Hide dropdown entirely
+            }
+
+            document.getElementById('eoc-employee-search').value = '';
+            
+            // Pre-fill loading state
+            const list = document.getElementById('eoc-list');
+            list.innerHTML = Array(4).fill().map(() => `
+                <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex items-center space-x-4">
+                    <div class="w-10 h-10 rounded-full animate-shimmer"></div>
+                    <div class="flex-1 space-y-2">
+                        <div class="h-3 bg-gray-200 rounded w-3/4 animate-shimmer"></div>
+                        <div class="h-2 bg-gray-200 rounded w-1/2 animate-shimmer"></div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Simulate Network Delay
+            setTimeout(() => {
+                renderGlobalEOCList();
+            }, 400);
+        }
+
+        function handleEOCStoreSearchInput() {
+            const query = document.getElementById('eoc-store-smart-input').value.toLowerCase();
+            const dropdown = document.getElementById('eoc-store-smart-dropdown');
+            
+            let availableStores = filteredStores;
+            if (query) {
+                availableStores = filteredStores.filter(store => store.name.toLowerCase().includes(query));
+            }
+
+            let html = `
+                <div onclick="selectEOCStore('all', '')" class="px-3 py-2.5 text-[12px] font-bold text-blue-600 hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition-colors flex items-center">
+                    <span class="material-symbols-outlined text-[16px] mr-1.5">table_view</span> View All Stores Table
+                </div>
+            `;
+            
+            if (availableStores.length === 0) {
+                html += '<div class="px-3 py-2 text-xs text-gray-500 text-center">No stores found</div>';
+            } else {
+                html += availableStores.map(store => `
+                    <div onclick="selectEOCStore('${store.id}', '${store.name.replace(/'/g, "\\'")}')" class="px-3 py-2.5 text-[12px] text-gray-700 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-0 truncate transition-colors">
+                        ${store.name}
+                    </div>
+                `).join('');
+            }
+            
+            dropdown.innerHTML = html;
+            dropdown.classList.remove('hidden');
+        }
+
+        function selectEOCStore(storeId, storeName) {
+            activeEOCStoreId = storeId;
+            const input = document.getElementById('eoc-store-smart-input');
+            const storeLabel = document.getElementById('eoc-store-count-label');
+            
+            if (storeId === 'all') {
+                input.value = '';
+                input.placeholder = 'Select a Store';
+                storeLabel.innerHTML = `<span class="material-symbols-outlined text-[16px] mr-1 text-primary">domain</span> <span>All Stores</span>`;
+            } else {
+                input.value = storeName;
+                storeLabel.innerHTML = `<span class="material-symbols-outlined text-[16px] mr-1 text-primary">storefront</span> <span class="truncate">${storeName}</span>`;
+            }
+
+            document.getElementById('eoc-store-smart-dropdown').classList.add('hidden');
+            document.getElementById('eoc-employee-search').value = ''; // Reset search field
+
+            // Shimmer effect
+            const list = document.getElementById('eoc-list');
+            list.innerHTML = Array(4).fill().map(() => `
+                <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex items-center space-x-4">
+                    <div class="w-10 h-10 rounded-full animate-shimmer"></div>
+                    <div class="flex-1 space-y-2">
+                        <div class="h-3 bg-gray-200 rounded w-3/4 animate-shimmer"></div>
+                        <div class="h-2 bg-gray-200 rounded w-1/2 animate-shimmer"></div>
+                    </div>
+                </div>
+            `).join('');
+
+            setTimeout(() => {
+                renderGlobalEOCList();
+            }, 300);
+        }
+
+        function renderGlobalEOCList() {
+            const list = document.getElementById('eoc-list');
+            const selectedStoreId = activeEOCStoreId;
+            const query = document.getElementById('eoc-employee-search').value.toLowerCase();
+            
+            // ==========================================
+            // TABLE VIEW: "All Stores" (or Manager Home Table)
+            // ==========================================
+            if (!selectedStoreId || selectedStoreId === 'all') {
+                document.getElementById('eoc-employee-search').placeholder = "Search stores...";
+                
+                let displayStores = filteredStores;
+                if (query) {
+                    displayStores = filteredStores.filter(store => 
+                        store.name.toLowerCase().includes(query) || store.id.toLowerCase().includes(query)
+                    );
+                }
+
+                let totalEOC = displayStores.reduce((sum, s) => sum + s.onClock, 0);
+                let totalAdh = displayStores.reduce((sum, s) => sum + s.adherence, 0);
+                let avgAdh = displayStores.length ? Math.round(totalAdh / displayStores.length) : 0;
+
+                let html = `
+                    <!-- EOC Stores Table -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[320px]">
+                            <thead>
+                                <tr class="bg-gray-100 border-b border-gray-200 text-[9px] uppercase tracking-wider text-gray-500">
+                                    <th class="p-2.5 font-bold whitespace-nowrap">Store ID</th>
+                                    <th class="p-2.5 font-bold whitespace-nowrap">Store Name</th>
+                                    <th class="p-2.5 font-bold text-center whitespace-nowrap">On Clock</th>
+                                    <th class="p-2.5 font-bold text-center whitespace-nowrap">Adherence %</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-[12px] text-gray-700">
+                                ${displayStores.map(s => `
+                                    <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50 cursor-pointer transition-colors" onclick="selectEOCStore('${s.id}', '${s.name.replace(/'/g, "\\'")}')">
+                                        <td class="p-2.5 font-bold text-[11px] text-gray-500">${s.id}</td>
+                                        <td class="p-2.5 font-bold text-gray-800 truncate max-w-[130px]">${s.name}</td>
+                                        <td class="p-2.5 font-black text-blue-600 text-center">${s.onClock}</td>
+                                        <td class="p-2.5 font-bold text-center">
+                                            <span class="${getAdherenceStyle(s.adherence)} px-2 py-0.5 rounded text-[10px] border shadow-sm">${s.adherence}%</span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                                ${displayStores.length === 0 ? `<tr><td colspan="4" class="p-4 text-center text-gray-500 font-medium text-[12px]">No stores found.</td></tr>` : ''}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+                list.innerHTML = html;
+                return;
+            }
+
+            // ==========================================
+            // EMPLOYEE LIST VIEW: Specific Store Selected
+            // ==========================================
+            document.getElementById('eoc-employee-search').placeholder = "Search name or ID...";
+
+            let displayEmployees = [];
+            
+            const storesToProcess = filteredStores.filter(s => s.id === selectedStoreId);
+            
+            storesToProcess.forEach(store => {
+                store.onClockEmployees.forEach(emp => {
+                    if (emp.name.toLowerCase().includes(query) || emp.id.includes(query)) {
+                        displayEmployees.push({
+                            ...emp,
+                            storeName: store.name
+                        });
+                    }
+                });
+            });
+
+            // Sort by punch duration (longest on clock first)
+            displayEmployees.sort((a, b) => a.punchDate - b.punchDate);
+
+            if (displayEmployees.length === 0) {
+                list.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-gray-400 mt-20">
+                        <span class="material-symbols-outlined text-5xl mb-3 text-gray-300">verified</span>
+                        <p class="font-medium text-gray-500">No employees on clock found.</p>
+                    </div>`;
+                return;
+            }
+
+            const now = new Date();
+
+            list.innerHTML = displayEmployees.map(emp => {
+                // Calculate exact duration
+                const diffMs = now - emp.punchDate;
+                const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                
+                // Flag OT/Approaching OT (>= 8 hours)
+                const durationColor = diffHrs >= 8 
+                    ? 'text-red-700 bg-red-50 border-red-200 shadow-sm' 
+                    : 'text-blue-700 bg-blue-50 border-blue-200 shadow-sm';
+
+                return `
+                <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow transition-shadow">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="pr-2">
+                            <h4 class="font-bold text-gray-800 text-[14px]">${emp.name}</h4>
+                            <p class="text-xs text-gray-500 mt-0.5 font-medium">Timecard: ${emp.id}</p>
+                        </div>
+                        <div class="px-3 py-1.5 rounded-lg border flex flex-col items-end justify-center flex-shrink-0 ${durationColor}">
+                            <span class="uppercase tracking-wider text-[9px] font-bold opacity-80 mb-1 whitespace-nowrap">Clocked In Since</span>
+                            <span class="text-[16px] font-black tracking-tight leading-none">${diffHrs}h ${diffMins}m</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 flex items-center">
+                                    <span class="material-symbols-outlined text-[13px] mr-1">calendar_clock</span> Scheduled
+                                </p>
+                                <p class="text-[12px] font-bold text-gray-700">${emp.scheduled}</p>
+                            </div>
+                            <div>
+                                <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 flex items-center">
+                                    <span class="material-symbols-outlined text-[13px] mr-1">alarm_on</span> Actual Punch
+                                </p>
+                                <p class="text-[12px] font-black text-emerald-600">${emp.actual}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        function openEmployeeDetails(storeId, kpiId) {
+            navigateTo('view-employee-details', 'Alert Drill-down');
+            
+            const store = filteredStores.find(s => s.id === storeId) || allStoresData.find(s => s.id === storeId);
+            const activeKpi = store.kpis.find(k => k.id === kpiId);
+            const count = activeKpi.count;
+            
+            document.getElementById('details-kpi-title').innerText = activeKpi.title + ` (${count})`;
+            document.getElementById('details-location-name').innerHTML = `<span class="material-symbols-outlined text-[16px] mr-1.5 text-primary">storefront</span> ${store.id} - ${store.name}`;
+            document.getElementById('employee-search').value = '';
+            
+            const list = document.getElementById('employee-list');
+            
+            // Shimmer Loading
+            list.innerHTML = Array(Math.min(count, 4)).fill().map(() => `
+                <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex items-center space-x-4">
+                    <div class="w-10 h-10 rounded-full animate-shimmer"></div>
+                    <div class="flex-1 space-y-2">
+                        <div class="h-3 bg-gray-200 rounded w-3/4 animate-shimmer"></div>
+                        <div class="h-2 bg-gray-200 rounded w-1/2 animate-shimmer"></div>
+                    </div>
+                </div>
+            `).join('');
+
+            // Use the accurate, pre-calculated employees for this KPI
+            currentEmployees = store.kpiDetails[kpiId] || [];
+
+            // Simulate Network Delay
+            setTimeout(() => {
+                renderEmployeeList(currentEmployees);
+                if(count === 0) {
+                    list.innerHTML = `
+                        <div class="h-full flex flex-col items-center justify-center text-gray-400 mt-20">
+                            <span class="material-symbols-outlined text-5xl mb-3 text-gray-300">verified</span>
+                            <p class="font-medium text-gray-500">No deviations found.</p>
+                        </div>`;
+                }
+            }, 400);
+        }
+
+        function renderEmployeeList(data) {
+            const list = document.getElementById('employee-list');
+            list.innerHTML = data.map(emp => `
+                <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow transition-shadow">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h4 class="font-bold text-gray-800 text-[14px]">${emp.name}</h4>
+                            <p class="text-xs text-gray-500 mt-0.5 font-medium">${emp.idLabel}: ${emp.id}</p>
+                        </div>
+                        <div class="${emp.badgeBg} ${emp.badgeText} px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border border-white/50">
+                            ${emp.status}
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 flex items-center">
+                                    <span class="material-symbols-outlined text-[13px] mr-1">calendar_clock</span> Scheduled
+                                </p>
+                                <p class="text-[11px] font-bold text-gray-700">${emp.scheduled}</p>
+                            </div>
+                            <div>
+                                <p class="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 flex items-center">
+                                    <span class="material-symbols-outlined text-[13px] mr-1">fingerprint</span> ${emp.actualLabel}
+                                </p>
+                                <p class="text-[11px] font-black ${emp.actual === 'Missing' ? 'text-gray-400' : (emp.status === 'Active' ? 'text-emerald-600' : 'text-red-500')}">${emp.actual}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterEmployees() {
+            const query = document.getElementById('employee-search').value.toLowerCase();
+            const filtered = currentEmployees.filter(emp => 
+                emp.name.toLowerCase().includes(query) || emp.id.toLowerCase().includes(query)
+            );
+            renderEmployeeList(filtered);
+        }
+
+        // --- Global/Corporate Report Export Logic ---
+        function exportSAReport(format) {
+            // Close dropdown
+            document.getElementById('export-dropdown').classList.add('hidden');
+
+            // Define Headers
+            const headers = [
+                'Store ID', 
+                'Store Name', 
+                'Region', 
+                'Adherence %',
+                'Early In', 
+                'Early Out', 
+                'Late In', 
+                'Late Out', 
+                'Unscheduled Punches', 
+                'Scheduled/No Punch'
+            ];
+            
+            let dataRows = [];
+
+            // Iterate through active filtered stores to build data rows
+            filteredStores.forEach(store => {
+                const getCount = (id) => {
+                    const kpi = store.kpis.find(k => k.id === id);
+                    return kpi ? kpi.count : 0;
+                };
+                
+                dataRows.push([
+                    store.id,
+                    store.name,
+                    store.region.charAt(0).toUpperCase() + store.region.slice(1),
+                    `${store.adherence}%`,
+                    getCount(1), // Early In
+                    getCount(2), // Early Out
+                    getCount(3), // Late In
+                    getCount(4), // Late Out
+                    getCount(6), // Unscheduled Punches
+                    getCount(5)  // Scheduled/No Punch
+                ]);
+            });
+
+            const timestamp = new Date().toISOString().split('T')[0];
+
+            if (format === 'pdf') {
+                // Generate PDF using jsPDF and autoTable
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('landscape'); // Landscape fits data columns better
+                
+                // Add Headers & Titles
+                doc.setFontSize(16);
+                doc.setTextColor(53, 60, 81); // Primary brand color
+                doc.text("Schedule Adherence Report", 14, 15);
+                
+                doc.setFontSize(10);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 22);
+                doc.text(`Region Filter: ${document.getElementById('region-select').options[document.getElementById('region-select').selectedIndex].text}`, 14, 27);
+
+                // Generate Data Table
+                doc.autoTable({
+                    head: [headers],
+                    body: dataRows,
+                    startY: 32,
+                    theme: 'grid',
+                    headStyles: { 
+                        fillColor: [53, 60, 81], 
+                        textColor: 255, 
+                        fontSize: 9,
+                        fontStyle: 'bold',
+                        halign: 'center'
+                    },
+                    bodyStyles: { 
+                        fontSize: 8,
+                        textColor: 50
+                    },
+                    columnStyles: {
+                        0: { halign: 'center' },
+                        3: { halign: 'center' },
+                        4: { halign: 'center' },
+                        5: { halign: 'center' },
+                        6: { halign: 'center' },
+                        7: { halign: 'center' },
+                        8: { halign: 'center' },
+                        9: { halign: 'center' }
+                    },
+                    alternateRowStyles: {
+                        fillColor: [248, 250, 252]
+                    }
+                });
+
+                doc.save(`Schedule_Adherence_Report_${timestamp}.pdf`);
+            }
+        }
+
+        // --- Store Level Report Export Logic ---
+        function exportStoreReport(storeId, format) {
+            // Close dropdown
+            const dropdown = document.getElementById(`export-dropdown-${storeId}`);
+            if (dropdown) dropdown.classList.add('hidden');
+
+            const store = filteredStores.find(s => s.id === storeId) || allStoresData.find(s => s.id === storeId);
+            if (!store) return;
+
+            const headers = [
+                'Store ID', 
+                'Store Name', 
+                'Employee Name', 
+                'Timecard ID', 
+                'Scheduled Time', 
+                'Actual Punch'
+            ];
+            
+            let dataRows = [];
+
+            // 1. Add On-Clock Employees
+            store.onClockEmployees.forEach(emp => {
+                dataRows.push([
+                    store.id,
+                    store.name,
+                    emp.name,
+                    emp.id,
+                    emp.scheduled,
+                    emp.actual
+                ]);
+            });
+
+            // 2. Add Deviating Employees from Pre-calculated UI state
+            store.kpis.forEach(kpi => {
+                const emps = store.kpiDetails[kpi.id] || [];
+                emps.forEach(emp => {
+                    dataRows.push([
+                        store.id,
+                        store.name,
+                        emp.name,
+                        emp.id,
+                        emp.scheduled,
+                        emp.actual
+                    ]);
+                });
+            });
+
+            const timestamp = new Date().toISOString().split('T')[0];
+            const filename = `Employee_Adherence_Report_${store.id}_${timestamp}`;
+
+            if (format === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('landscape');
+                
+                doc.setFontSize(16);
+                doc.setTextColor(53, 60, 81);
+                doc.text(`Employee Adherence Report - ${store.name} (${store.id})`, 14, 15);
+                
+                doc.setFontSize(10);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 22);
+                doc.text(`Total Records: ${dataRows.length}`, 14, 27);
+
+                doc.autoTable({
+                    head: [headers],
+                    body: dataRows,
+                    startY: 32,
+                    theme: 'grid',
+                    headStyles: { 
+                        fillColor: [53, 60, 81], 
+                        textColor: 255, 
+                        fontSize: 9,
+                        fontStyle: 'bold',
+                        halign: 'center'
+                    },
+                    bodyStyles: { 
+                        fontSize: 8,
+                        textColor: 50
+                    },
+                    columnStyles: {
+                        0: { halign: 'center' },
+                        3: { halign: 'center' },
+                        4: { halign: 'center' },
+                        5: { halign: 'center' }
+                    },
+                    alternateRowStyles: {
+                        fillColor: [248, 250, 252]
+                    }
+                });
+
+                doc.save(`${filename}.pdf`);
+            }
+        }
+
+        // --- Init ---
+        // Populate dummy home cards
+        const listContainer = document.getElementById('list-container');
+        for (let i = 0; i < 8; i++) {
+            listContainer.innerHTML += `
+                <div class="bg-white rounded-xl p-4 flex justify-between items-center shadow-sm border border-gray-100 mb-3 hover:shadow transition-shadow cursor-pointer">
+                    <span class="text-gray-800 font-bold">$0.00</span>
+                    <span class="material-symbols-outlined text-gray-400">chevron_right</span>
+                </div>`;
+        }
+        
+        // Set default date
+        document.getElementById('date-select').value = new Date().toISOString().split('T')[0];
+        
+        // Initial setup for stores before login
+        generateAllStores();
+    </script>
+</body>
+</html>
